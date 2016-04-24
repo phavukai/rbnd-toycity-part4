@@ -55,17 +55,27 @@ class Udacidata
     end
   end
 
-  #find item by index
-  def self.find(index)
-    products = all
-    if(index > products.length)
-      raise ProductNotFoundErrors, "'#{index}' out of range."
-    end
-    products.each do |product|
-      if(product.id == index)
-        return product
+#  #find item by index
+#  def self.find(index)
+#    products = all
+#    if(index > products.length)
+#      raise ProductNotFoundErrors, "'#{index}' out of range."
+#    end
+#    products.each do |product|
+#      if(product.id == index)
+#        return product
+#      end
+#    end
+#  end
+
+  #New find by id 
+  def self.find(id)
+      data = CSV.read(@@data_path).drop(1)
+      product = data.select{ |item| item[0] == id.to_s}.first
+      if !product
+        raise ProductNotFoundError
       end
-    end
+      return Product.new({id: product[0], brand: product[1], name: product[2], price:product[3]})
   end
 
   #find items by attribute
