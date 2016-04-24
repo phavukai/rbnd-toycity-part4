@@ -1,3 +1,4 @@
+#require_relative 'product'
 require_relative 'find_by'
 require_relative 'errors'
 require 'csv'
@@ -73,10 +74,29 @@ class Udacidata
       data = CSV.read(@@data_path).drop(1)
       product = data.select{ |item| item[0] == id.to_s}.first
       if !product
-        raise ProductNotFoundError
+        raise ProductNotFoundErrors, "'#{id}' not found."
       end
       return Product.new({id: product[0], brand: product[1], name: product[2], price:product[3]})
   end
+
+   def self.destroy(product_id)
+       deleted_product = Product.find(product_id)
+          if deleted_product
+            data = CSV.table(@@data_path)
+            data.delete_if do |row|
+             row[:id] == product_id
+          end        
+        File.open(@@data_path, 'w') do |f|
+          f.write(data.to_csv)
+        end
+      if !deleted_product
+	raise ProductNotFoundErrors, "'#{id}' not found."
+	end
+      end
+      return deleted_product	
+  end
+
+
 
   #find items by attribute
   def self.where(attributes = {})
@@ -100,62 +120,26 @@ class Udacidata
   end
 
   #update an item
-  def update(attributes = {})
-    @brand = attributes[:brand]
-    @price = attributes[:price]
-    cvsData = CSV.read(@@data_path)
-    cvsData.delete_at(0)
-    cvsData.each do |data|
-      if(data[0].to_i == @id)
-        data[1] = @brand
-        data[3] = @price
+  def update(params = {})
+    data = CSV.table(@@data_path)
+    data.each do |row|
+      if row[:id] == @id
+        if params[:price]
+          row[:price] = params[:price]
+        end
+
+        if params[:brand]
+          row[:brand] = params[:brand]
+        end
       end
     end
 
-    #create new dbs
-    CSV.open(@@data_path, "wb") do |csv|
-      csv << ["id", "brand", "product", "price"]
+    File.open(@@data_path, 'w') do |f|
+          f.write(data.to_csv)
     end
-
-    #append remaining data
-    CSV.open(@@data_path, "a") do |csv|
-      cvsData.each do |data|
-        csv << [data[0], data[1], data[2], data[3]]
-      end
-    end
-    self
-  end
-
-  #remove an item
-  def self.destroy(index)
-    #read dbs and remove element
-    cvsData = all
-    if(index > cvsData.length)
-      raise ProductNotFoundErrors, "'#{index}' out of range."
-    end
-    deletedProduct = nil
-    i = 0
-    cvsData.each do |data|
-      if(data.id == index)
-        deletedProduct = data
-        cvsData.delete_at(i)
-      end
-      i += 1
-    end
-
-    #create new dbs
-    CSV.open(@@data_path, "wb") do |csv|
-      csv << ["id", "brand", "product", "price"]
-    end
-
-    #append remaining data
-    CSV.open(@@data_path, "a") do |csv|
-      cvsData.each do |data|
-        csv << [data.id, data.brand, data.name, data.price]
-      end
-    end
-    deletedProduct
-  end
+    
+    return Product.find(@id)
+  end  
 
   #create find_by name and brand methods 
   def self.method_missing(method_name, arguments)
